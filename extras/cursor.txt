@@ -1,0 +1,19 @@
+CREATE OR REPLACE TABLE invoices (id INTEGER, price NUMBER(12, 2));
+
+INSERT INTO invoices (id, price) VALUES
+  (1, 11.11),
+  (2, 22.22);
+
+  EXECUTE IMMEDIATE $$
+DECLARE
+  id INTEGER DEFAULT 0;
+  minimum_price NUMBER(13,2) DEFAULT 22.00;
+  maximum_price NUMBER(13,2) DEFAULT 33.00;
+  c1 CURSOR FOR SELECT * FROM invoices WHERE price > ? and price < ?;
+BEGIN
+  OPEN c1 USING (minimum_price, maximum_price);
+  fetch c1 into id;
+  RETURN id;
+END;
+$$
+;

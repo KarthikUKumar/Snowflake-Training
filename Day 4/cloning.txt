@@ -1,0 +1,93 @@
+Select * from TEST_DB.TEST_SCHEMA.LOCAL_LOADED_TABLE;
+
+create or replace table LOCAL_LOADED_TABLE_CLONED clone LOCAL_LOADED_TABLE;
+
+select * from LOCAL_LOADED_TABLE_CLONED;
+
+CREATE OR REPLACE DATABASE TEST_DB_Cloned CLONE TEST_DB;
+
+DROP DATABASE TEST_DB_CLONED;
+USE DATABASE TEST_DB;
+use schema sample_clone;
+create or replace schema sample_clone clone TEST_DB.TEST_SCHEMA;
+show pipes;
+use schema test_schema;
+describe table local_loaded_table; 
+describe pipe demo_snowpipe;
+
+select * from local_loaded_table;
+select SYSTEM$PIPE_STATUS( 'DEMO_SNOWPIPE' );
+create or replace table ECDC_GLOBAL clone COVID19_EPIDEMIOLOGICAL_DATA.PUBLIC.ECDC_GLOBAL;
+create or replace table ECDC_GLOBAL AS SELECT * FROM COVID19_EPIDEMIOLOGICAL_DATA.PUBLIC.ECDC_GLOBAL;
+
+
+--another
+-- SHARE
+
+--drop database SNOWFLAKE_SAMPLE_DATA;
+
+
+show shares;
+CREATE DATABASE SNOWFLAKE_SAMPLE_DATA_TBD FROM SHARE SFSALESSHARED.SFC_SAMPLES_AZURE_WESTUS2.SAMPLE_DATA;
+
+-- CREATE SCHEMA DEMO;
+
+/* 
+
+CREATE [ OR REPLACE ] { DATABASE | SCHEMA | TABLE } [ IF NOT EXISTS ] <object_name>
+  CLONE <source_object_name>
+        [ { AT | BEFORE } ( { TIMESTAMP => <timestamp> | OFFSET => <time_difference> | STATEMENT => <id> } ) ]
+*/
+
+
+//  Cannot clone from a table that was imported from a share.
+CREATE OR REPLACE TABLE ITEM_CLONE
+    CLONE SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.ITEM;
+
+  
+// table creation using CTAS
+CREATE OR REPLACE TABLE ITEM_STG AS
+    SELECT * FROM  SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.ITEM;
+
+// Cuurent grants on table is select to public ( insert to be added next )
+SHOW GRANTS ON TABLE ITEM_STG;
+
+// provide an insert grant
+GRANT INSERT ON TABLE TEST_DB.DEMO.ITEM_STG TO ROLE public;
+
+// Cuurent grants on table are select and insert to public
+SHOW GRANTS ON TABLE ITEM_STG;
+
+// Clone from the stage table
+CREATE OR REPLACE TABLE ITEM_STG_CLONE
+    CLONE TEST_DB.DEMO.ITEM_STG;
+
+// Grants on the cloned table is only select ( insert does not get cloned as it is at table level )
+SHOW GRANTS ON TABLE ITEM_STG_CLONE;
+
+// show the example of a pipe when a schema is cloned
+
+select count(1) from 
+TEST_DB.DEMO.ITEM_STG ;-- 502011
+
+// clone from an offset value
+CREATE OR REPLACE TABLE ITEM_STG_CLONE_2
+    CLONE TEST_DB.DEMO.ITEM_STG BEFORE( STATEMENT => '01ac7fd9-0201-9c2a-0001-3e9e0003018e' ); --502000
+
+
+// table creation using CTAS
+CREATE OR REPLACE TABLE PROMO AS
+    SELECT * FROM  SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.PROMOTION;
+
+ALTER TABLE PROMO SET DATA_RETENTION_TIME_IN_DAYS = 0;
+
+insert into PROMO
+select * from PROMO;
+
+
+select count(1) from 
+TEST_DB.DEMO.PROMO BEFORE( STATEMENT => '01ac8410-0201-9d2d-0001-3e9e000405e2' ); 
+
+
+create or replace table PROMO_CLONE
+CLONE TEST_DB.DEMO.PROMO BEFORE( STATEMENT => '01ac7fe5-0201-9bf8-0001-3e9e0002e49e' ); 

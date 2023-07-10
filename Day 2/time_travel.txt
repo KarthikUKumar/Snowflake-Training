@@ -1,0 +1,43 @@
+
+
+--Time Travel--
+select * from LOCAL_LOADED_TABLE;
+
+update LOCAL_LOADED_TABLE set city='Bangalore' where name='Joyston';
+
+
+(select * from
+table(information_schema.query_history_by_session (result_limit=>5))
+where query_text like 'update%' order by start_time limit 1);
+
+
+select * from LOCAL_LOADED_TABLE at (offset => -5*60);
+
+
+(select * from LOCAL_LOADED_TABLE before (statement => '01ad66df-0c04-b270-0003-4b42003edf9e'));
+
+
+SELECT * FROM LOCAL_LOADED_TABLE before(TIMESTAMP => 'Tue, 4 July 2023 15:20:00 +0530'::timestamp_tz);
+
+CREATE TABLE mytable(col1 NUMBER, col2 DATE) DATA_RETENTION_TIME_IN_DAYS=90;
+
+ALTER TABLE mytable SET DATA_RETENTION_TIME_IN_DAYS=30;
+
+show parameters like '%time_in_days%' in account;
+
+alter account set MIN_DATA_RETENTION_TIME_IN_DAYS=30;
+
+--Retention Period--
+show tables;
+
+drop table TEST_TABLE;
+
+select * from TEST_TABLE;
+
+undrop table TEST_TABLE;
+
+SHOW TABLES HISTORY LIKE 'test%' IN test_db.test_schema;
+
+SHOW SCHEMAS HISTORY IN test_db;
+
+SHOW DATABASES HISTORY;

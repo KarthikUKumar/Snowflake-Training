@@ -1,0 +1,42 @@
+select * from employees;
+
+--non-recursive with clause
+with employee_details 
+as
+(
+    select * from employees where manager_id=10
+)
+select * from employee_details;
+
+
+--recursive with clause
+WITH RECURSIVE managers
+(indent, employee_ID, manager_ID, employee_title)
+AS
+(
+
+    SELECT '' AS indent, employee_ID, manager_ID, title AS employee_title
+    FROM employees
+             WHERE title = 'President'
+          UNION ALL
+
+        SELECT indent || '--- ',
+               employees.employee_ID, employees.manager_ID, employees.title
+             FROM employees JOIN managers
+               ON employees.manager_ID = managers.employee_ID
+         )
+
+     SELECT indent || employee_title AS Title, employee_ID, manager_ID
+      FROM managers;
+
+
+
+WITH RECURSIVE current_f (current_val, previous_val) AS
+    (
+    SELECT 0, 1
+    UNION ALL 
+    SELECT current_val + previous_val, current_val FROM current_f
+      WHERE current_val + previous_val < 100
+    )
+SELECT current_val FROM current_f ORDER BY current_val;
+

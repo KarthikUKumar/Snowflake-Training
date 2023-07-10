@@ -1,0 +1,51 @@
+--Account roles--
+use role SECURITYADMIN;
+create or replace role junior_dba;
+
+use role USERADMIN;
+create or replace user user1 password = 'Summer@2023' MUST_CHANGE_PASSWORD = TRUE;
+
+use role securityadmin;
+grant role junior_dba to user NRANJAN;
+
+--Role Heirarchy--
+grant role junior_dba to role SYSADMIN;
+
+use role sysadmin;
+grant usage on warehouse compute_wh to role junior_dba;
+grant usage on database TEST_DB to role junior_dba;
+grant usage on schema TEST_SCHEMA to role junior_dba;
+grant select on table TEST_TABLE to role junior_dba;
+
+
+use role junior_dba;
+show grants on table test_table;
+
+show grants of role junior_dba;
+
+show grants to role junior_dba;
+
+--use role sysadmin;
+--revoke select on all table from role junior_dba;
+
+--List of previlages available in snowflake-  https://docs.snowflake.com/en/user-guide/security-access-control-privileges
+
+
+use database TEST_DB;
+use schema TEST_SCHEMA;
+select * from TEST_TABLE;
+insert into test_table values(10,'Varsha','House 13., Shivamogga');
+
+GRANT SELECT ON FUTURE TABLES IN SCHEMA test_schema TO ROLE junior_dba;
+
+--Database role--
+CREATE OR REPLACE DATABASE ROLE role_1;
+show grants on database test_db;
+
+--Secondary Roles--
+use secondary roles sysadmin;
+select current_secondary_roles();
+
+
+show network policies;
+

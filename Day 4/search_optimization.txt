@@ -1,0 +1,45 @@
+GRANT ADD SEARCH OPTIMIZATION ON SCHEMA TEST_SCHEMA TO ROLE JUNIOR_DBA;--granting role/user to add search optimization service
+
+SHOW TABLES LIKE '%test_table%'; --displaying table data/verification
+
+
+ALTER TABLE test_table ADD SEARCH OPTIMIZATION ON EQUALITY(Name); --adding search optimization
+
+--ALTER TABLE CUSTOMER_SUBSTRING ADD SEARCH OPTIMIZATION ON SUBSTRING(*) ;
+--ALTER TABLE CUSTOMER ADD SEARCH OPTIMIZATION ON SUBSTRING(C_CUSTOMER_ID) ;
+--ALTER TABLE CUSTOMER DROP SEARCH OPTIMIZATION ON SUBSTRING(C_CUSTOMER_ID) ;
+--ALTER TABLE CUSTOMER DROP SEARCH OPTIMIZATION ON C_CURRENT_CDEMO_SK;
+--ALTER TABLE IF EXISTS CUSTOMER DROP SEARCH OPTIMIZATION;
+
+alter table test_table add search optimization; --will add EQUALITY on all column
+
+--After you run ALTER TABLE … ADD SEARCH OPTIMIZATION command without the ON clause, any columns that are subsequently added to the table will also be configured for EQUALITY.
+
+SHOW TABLES LIKE '%test_table%';
+
+DESCRIBE SEARCH OPTIMIZATION ON test_table;
+
+create or replace table lineitem as select * from  snowflake_sample_data.tpch_sf100.lineitem; -- creating table with 600M record
+
+create or replace table lineitem_clustered clone lineitem; -- cluster
+create or replace table lineitem_optimized clone lineitem; -- SOS
+
+alter table lineitem_clustered cluster by (l_shipdate); -- by ship date
+alter table lineitem_optimized add search optimization; -- adding search optimization
+
+select system$clustering_information('lineitem','(l_shipdate)');
+select system$clustering_information('lineitem_clustered','l_shipdate');
+
+show tables like '%lineitem_optimized%';
+
+select * from lineitem where l_orderkey='506754340'; --checking normal unclustered table
+
+alter SESSION SET USE_CACHED_RESULT = FALSE;
+ALTER WAREHOUSE COMPUTE_WH SUSPEND;
+ALTER WAREHOUSE COMPUTE_WH RESUME;
+
+select * from lineitem_clustered where l_orderkey='506754340';
+
+select * from lineitem_clustered where l_shipdate between '1992-05-01' and '1992-07-15' and  l_orderkey='506754340';
+
+select * from lineitem_optimized where l_orderkey='506754340';

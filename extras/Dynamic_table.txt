@@ -1,0 +1,23 @@
+
+create or replace table src_clone as select * from student_src;
+create or replace dynamic table src_dyanamic
+target_lag='2 minute'
+warehouse = compute_wh as
+select * from src_clone; --first dynamic table 
+
+select * from src_dyanamic;
+select * from src_clone;
+insert into src_clone values(13,'Chinmay',80,current_timestamp);
+insert into src_clone select *,CURRENT_TIMESTAMP from student_src;
+truncate table src_clone;
+drop dynamic table analytics_dynamic;
+
+create or replace dynamic table analytics_dynamic 
+target_lag='3 minute'
+warehouse=compute_wh as
+select *,case when percentage<80 then 'First Class' when percentage<60 then 'Failed' else 'Distinction' end as performance  from src_dyanamic a where time=(select max(time) from src_dyanamic where id=a.id);
+
+select * from analytics_dynamic;
+alter table src_clone add column time timestamp;
+show dynamic tables;
+select * from student_src;

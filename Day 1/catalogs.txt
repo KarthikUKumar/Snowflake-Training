@@ -1,0 +1,107 @@
+set name=(select concat('test_db_',current_user()));
+select $name;
+--DATABASES--
+CREATE OR REPLACE DATABASE IDENTIFIER($name);
+
+
+--SCHEMA--
+CREATE OR REPLACE SCHEMA TEST_SCHEMA;
+
+
+--TABLE AND TYPES--
+USE DATABASE identifier($name);
+USE SCHEMA TEST_SCHEMA;
+CREATE OR REPLACE TABLE TEST_TABLE
+(ID NUMBER (10,0) NOT NULL DEFAULT 0, NAME VARCHAR (50), ADDRESS VARCHAR (100));
+INSERT INTO TEST_TABLE VALUES(101,'Vijay','House No 18., Kundapur, Udupi');
+INSERT INTO TEST_TABLE VALUES(102,'Karan','House No 20., Honnavar,Uttar Kannada');
+SELECT * FROM TEST_TABLE;
+
+
+--Transient table--
+create OR REPLACE transient table transient_table (id number, name varchar(50),is_manager boolean,date_of_join date);
+INSERT INTO transient_table VALUES(102,'Karan',TRUE,'2023-05-01'),(101,'Francis',falSe,'01-MAR-2022'),(103,'Rahul',0,'07/06/2022');
+SELECT * FROM transient_table;
+
+--Transient DATABASES--
+set transient_name=(select concat('transient_db_',current_user()));
+select $transient_name;
+CREATE OR REPLACE transient DATABASE IDENTIFIER($transient_name);
+
+
+--Transient SCHEMA--
+CREATE OR REPLACE SCHEMA Transient_SCHEMA;
+
+--Temporary Table--
+create OR REPLACE temporary table temporary_table (id number, name varchar(50));
+INSERT INTO temporary_table VALUES(102,'Karan');
+INSERT INTO temporary_table VALUES(101,'Francis');
+SELECT * FROM TEMPORARY_TABLE;
+
+SHOW TABLES;
+
+SHOW OBJECTS;
+show objects like 'Test%';
+
+select get_ddl('table','TEST_TABLE');
+
+select * from information_schema.tables where table_name = 'TEST_TABLE';
+
+--VIEWS AND TYPES--
+CREATE OR REPLACE VIEW test_view AS
+    SELECT * FROM TEST_TABLE;
+
+SELECT * FROM test_view;
+
+--Materialized View--
+CREATE OR REPLACE MATERIALIZED VIEW materialized_view AS   
+SELECT ID,NAME,ADDRESS FROM TEST_TABLE;
+
+SELECT * FROM MATERIALIZED_VIEW;
+
+--Secure View--
+CREATE OR REPLACE SECURE VIEW secure_view AS
+    SELECT * FROM TEST_TABLE;
+
+SELECT * FROM SECURE_VIEW;
+
+
+Show VIEWS;
+
+show grants on view secure_view;
+
+
+Grant usage on database TEST_DB to role sysadmin;
+Grant usage on schema TEST_SCHEMA to role sysadmin;
+GRANT SELECT ON ALL VIEWS IN SCHEMA TEST_SCHEMA TO ROLE SYSADMIN;
+//revoke select on all views in schema TEST_SCHEMA from role SYSADMIN;
+
+--Recursive View--
+create or replace table employees(title varchar,employee_id int,manager_id int);
+insert into employees values
+    ('President', 1, null),  -- The President has no manager.
+        ('Vice President Engineering', 10, 1),
+            ('Programmer', 100, 10),
+            ('QA Engineer', 101, 10),
+        ('Vice President HR', 20, 1),
+            ('Health Insurance Analyst', 200, 20);
+
+select * from employees;
+
+
+CREATE OR REPLACE RECURSIVE VIEW employee_hierarchy_02 (title, employee_ID, manager_ID, "MGR TITLE") AS (
+      -- Start at the top of the hierarchy ...
+      SELECT title, employee_ID, manager_ID, null
+        FROM employees
+        WHERE manager_ID is null
+      UNION ALL
+      -- ... and work our way down one level at a time.
+      SELECT employees.title, 
+             employees.employee_ID, 
+             employees.manager_ID, 
+             employee_hierarchy_02.title AS "MGR TITLE"
+        FROM employees INNER JOIN employee_hierarchy_02
+        WHERE employee_hierarchy_02.employee_ID = employees.manager_ID
+);
+
+select * from employee_hierarchy_02;

@@ -1,0 +1,67 @@
+--External Table--
+create or replace external table po_detail (
+company_code STRING AS (value:company_code::string),
+warehouse_number INT as (value:warehouse_number::int),
+warehouse_business_unit_code STRING as (value:warehouse_business_unit_code::string),
+po_division_number INT as (value:po_division_number::int),
+po_number STRING as (value:po_number::string),
+po_exchange_country_code STRING as (value:po_exchange_country_code::string),
+po_line_number INT as (value:po_line_number::int),
+po_product_cost NUMERIC as (value:po_product_cost::numeric),
+po_currency_conv_rate NUMERIC as (value:po_currency_conv_rate::numeric),
+po_line_status_code STRING as (value:po_line_status_code::string),
+po_purchase_quantity INT as (value:po_purchase_quantity::int),
+po_backorder_quantity INT as (value:po_backorder_quantity::int),
+po_free_goods_quantity INT as (value:po_free_goods_quantity::int),
+po_received_quantity INT as (value:po_received_quantity::int),
+po_open_quantity INT as (value:po_open_quantity::int),
+po_adjusted_purchase_quantity INT as (value:po_adjusted_purchase_quantity::int),
+po_adjusted_amount NUMERIC as (value:po_adjusted_amount::numeric),
+supplier_code STRING as (value:supplier_code::string),
+vendor_code STRING as (value:vendor_code::string),
+po_create_date INT as (value:po_create_date::int),
+po_product_unit_cost NUMERIC as (value:po_product_unit_cost::numeric),
+product_code STRING as (value:product_code::string),
+po_purchasing_uom STRING as (value:po_purchasing_uom::string),
+po_exchange_rate NUMERIC as (value:po_exchange_rate::numeric),
+po_currency_code STRING as (value:po_currency_code::string),
+po_reopen_date INT as (value:po_reopen_date::int),
+po_current_status_code STRING as (value:po_current_status_code::string),
+po_detail_special_buy_flag STRING as (value:po_detail_special_buy_flag::string),
+po_table_id STRING as (value:po_table_id::string),
+load_date INT as (value:load_date::int)
+)
+LOCATION=@my_azure_stage/training_files/Parquet_file/
+FILE_FORMAT = (TYPE = 'Parquet');
+
+
+
+select * from po_detail limit 100;
+
+
+
+ALTER EXTERNAL TABLE po_detail refresh;
+
+--directory table
+
+CREATE or replace STAGE my_azure_directory 
+STORAGE_INTEGRATION = my_azure_stage_STORAGE_INT
+URL = 'azure://chinmaydatabricks.blob.core.windows.net/database'
+DIRECTORY = (
+    ENABLE = true
+    AUTO_REFRESH = false
+    --NOTIFICATION_INTEGRATION = 'Integration1'
+  );
+
+DESC NOTIFICATION INTEGRATION Integration1;
+alter 
+LIST @my_azure_directory;
+
+SELECT * FROM DIRECTORY( @my_azure_directory);
+SELECT * FROM DIRECTORY(@my_azure_stage);
+
+SELECT build_stage_file_url(@my_azure_directory, 'training_files/Unstructured Data/caching.webp') as URL;
+
+SELECT get_presigned_url(@my_azure_directory,'training_files/Unstructured Data/caching.webp') as presigned_url 
+FROM DIRECTORY( @my_azure_directory);
+

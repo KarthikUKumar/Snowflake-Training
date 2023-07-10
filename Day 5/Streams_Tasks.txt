@@ -1,0 +1,63 @@
+--create a raw table whiere change data capture will be triggered
+create or replace table  cdc_table(
+  cdc_col_1  varchar ,
+  cdc_col_2  varchar ,
+  cdc_col_3  varchar 
+);
+--insert & select and see the data (we are loading 1st time)
+insert into cdc_table values 
+  ('onetime-val-11', 'onetime-val-12', 'onetime-val-13'),
+  ('onetime-val-21', 'onetime-val-22', 'onetime-val-23'),
+  ('onetime-val-31', 'onetime-val-32', 'onetime-val-33');
+select * from cdc_tbl;
+
+--the final table where post cdc, data will 
+create or replace table final_tbl (
+  final_col_1  varchar ,
+  final_col_2  varchar ,
+  final_col_3  varchar 
+);
+-- 1st time data load from cdc_table to final table, we can assume history load or onetime load
+insert into final_tbl select * from cdc_tbl;
+select * from final_tbl;
+
+--CREATE STREAM--
+create or replace stream   
+cdc_stream on table cdc_table;
+
+
+-- CREATE TASK--
+create or replace task cdc_task
+warehouse = compute_wh
+schedule  = '2 minute'
+when
+system$stream_has_data('cdc_stream')
+as
+insert into final_tbl select cdc_col_1,cdc_col_2,cdc_col_3 from cdc_stream;
+
+--Start the task--
+alter task cdc_task resume;
+
+--executes immediately(only once)--
+execute task cdc_task;
+
+--insert few records to the cdc_table--
+insert into cdc_table values (
+  'cdc-val-71', 'cdc-val-42', 'cdc-val-43'),
+  ('cdc-val-81', 'cdc-val-52', 'cdc-val-53'),
+  ('cdc-val-91', 'cdc-val-62', 'cdc-val-63');
+
+
+select * from cdc_stream;
+
+-- how to see how it works
+select * from table(information_schema.task_history())  
+  order by scheduled_time;
+-- you can see only the schedule items
+select * from table(information_schema.task_history())  
+  where state ='SCHEDULED' order by scheduled_time;
+
+
+select * from final_tbl;
+
+alter task cdc_task suspend;

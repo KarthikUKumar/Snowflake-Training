@@ -1,0 +1,31 @@
+--STORED PROCEDURE--
+
+create or replace table employee_1(id int, name varchar,city varchar,status varchar);
+insert into employee_1 values 
+(1,'Vijay','Banglore','Active'),
+(2,'Suresh','Hyderabad','Active'),
+(3,'Ramesh','Bangalore','Inactive'),
+(4,'Ram','Noida','Active'),
+(5,'Roy','Noida','Active'),
+(6,'Joyce','Banglore','Inactive'),
+(7,'Allice','Hyderabad','Active'),
+(8,'Sam','Banglore','Inactive');
+
+select * from EMPLOYEE_1;
+
+CREATE OR REPLACE PROCEDURE purge_data_by_status(in_status VARCHAR)
+RETURNS VARCHAR 
+LANGUAGE SQL AS
+$$
+DECLARE
+COUNT INT;
+BEGIN
+COUNT := (SELECT COUNT(*) FROM employee_1 WHERE status = :in_status);
+DELETE FROM employee_1 WHERE status = :in_status;
+RETURN COUNT ||' '|| in_status ||' employees data deleted successfully';
+END;
+$$;
+
+call purge_data_by_status('Inactive');
+
+SELECT * FROM EMPLOYEE_1;

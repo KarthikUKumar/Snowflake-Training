@@ -1,0 +1,277 @@
+create or replace stage MY_AZURE_STAGE
+  STORAGE_INTEGRATION = my_azure_stage_STORAGE_INT
+  URL = 'azure://chinmaydatabricks.blob.core.windows.net/database';
+
+--querying staged file--
+select $1,$2,$3,$4,$5 from @MY_AZURE_STAGE/training_files/CSV_file/ limit 100 ;--querying csv file
+
+create or replace FILE FORMAT my_parquet_format TYPE='parquet';
+
+select $1 from @MY_AZURE_STAGE/training_files/Parquet_sample/
+(file_format=>'my_parquet_format');
+
+select $1:country:city from @MY_AZURE_STAGE/training_files/Parquet_sample/
+(file_format=>'my_parquet_format');--querying parquet file
+
+CREATE OR REPLACE FILE FORMAT my_json_format TYPE = 'json';
+
+list @MY_AZURE_STAGE/training_files/Parquet_file/;
+list @MY_AZURE_STAGE;
+list @MY_AZURE_STAGE/training_files/JSON/;
+
+select $1:batters:batter[0]:type from @MY_AZURE_STAGE/training_files/JSON/sample1.json
+(file_format=>'my_json_format');
+
+select $1:topping from @MY_AZURE_STAGE/training_files/JSON/sample1.json
+(file_format=>'my_json_format');
+
+select $1:topping[0]:id from @MY_AZURE_STAGE/training_files/JSON/sample1.json
+(file_format=>'my_json_format');
+
+select $1:batters:batter from @MY_AZURE_STAGE/training_files/JSON/sample1.json
+(file_format=>'my_json_format');
+
+create or replace table json_table (v variant); --creating table with variant data type
+copy into json_table from @MY_AZURE_STAGE/training_files/JSON/sample1.json
+file_format='my_json_format'; --loading json data
+
+select * from json_table;
+
+select v:"batters" from json_table;
+
+select $1 from @MY_AZURE_STAGE/training_files/JSON/json_sample.json
+(file_format=>'my_json_format');
+
+select $1:Cities from @MY_AZURE_STAGE/training_files/JSON/json_sample.json
+(file_format=>'my_json_format');
+
+select $1:Cities[0] from @MY_AZURE_STAGE/training_files/JSON/json_sample.json
+(file_format=>'my_json_format');
+
+create or replace table json_table1(v variant);--creating and loading another JSON data
+
+copy into json_table1 from @MY_AZURE_STAGE/training_files/JSON/json_sample.json
+file_format='my_json_format';--loading raw JSON data into table single column
+
+select * from json_table1;
+
+select object_keys(v) from json_table1;
+
+select get(v,'Cities') from json_table1;
+
+select v:FullName as Full_Name from json_table1; --accessing json element
+
+select v:PhoneNumber:AreaCode::string as Areacode,v:PhoneNumber.SubscriberNumber::string as Subscriber_Number,v:Age::int as Age,v:Gender::string as Gender,v:FullName::string as Full_Name,v:Cities as cities_details,v:Education as Education_details from json_table1; --querying elements
+
+--handling Arrays
+select v:FullName::string as full_name,f.value:School::string as school,f.value:Address as address,f.value:Year::string as year from json_table1,table(flatten(v:Education))f;--using flatten
+
+select v:FullName::string as Full_Name,v:Age::string as Age,array_size(v:Education) as No_of_schools from json_table1; --count the elements in array
+
+select v:FullName::string as Full_Name,f.value:School::string as school,f.value:Address::string as address,f.value:Year::string as year from json_table1,table(flatten(v:Education))f;
+
+--array within an array
+select * from json_table1;
+
+select v:FullName::string as Name,v:Age as Age,cl.value:CityName::string as city_name,cl.value:YearsLived::string as year_lived from json_table1,table(flatten(v:Cities))cl; --flatten cities array(1st)
+
+select v:FullName::string as Name,v:Age as Age,cl.value:CityName::string as city_name,yl.value::string as year_lived from json_table1,table(flatten(v:Cities))cl,table(flatten(cl.value:YearsLived))yl;
+--hERE second flatten that transforms YearsLived array within Flattened Cities array. 
+--“yl” which transforms or pivots YearsLived array for each value returned from the first Flatten of the Cities array “cl”.
+
+
+--DATA AGGREGATION
+select cl.value:CityName::string as city_name,to_char(count(*)) as year_lived from json_table1,table(flatten(v:Cities))cl, table(flatten(cl.value:YearsLived))yl group by 1;
+
+
+--XML Illustration--
+
+create or replace FILE FORMAT my_xml_format TYPE='xml';
+
+list @MY_AZURE_STAGE/training_files/XML/;
+
+select $1:bk101 from @MY_AZURE_STAGE/training_files/XML/sample1.xml
+(file_format=>'my_xml_format');
+
+ select XMLGET($1, 'book'):"$" as id
+  from @MY_AZURE_STAGE/training_files/XML/sample1.xml
+(file_format=>'my_xml_format');--querying xml file
+
+select XMLGET($1, 'book'):"$"[3]:"$" as id
+  from @MY_AZURE_STAGE/training_files/XML/sample1.xml
+(file_format=>'my_xml_format');--accessing element
+
+ select XMLGET($1, 'cd'):"$" as id
+  from @MY_AZURE_STAGE/training_files/XML/sample1.xml
+(file_format=>'my_xml_format');--querying xml file
+
+create or replace table xml_table(v variant);
+copy into xml_table from @MY_AZURE_STAGE/training_files/XML/sample1.xml
+file_format='my_xml_format';
+
+select * from xml_table;
+
+select object_keys(v) from xml_table;
+select get(v,'$') from xml_table;
+
+
+create or replace table xml_doc (xml_val variant);--creating xml table with variant column
+insert into xml_doc
+select parse_xml('<?xml version="1.0"?>
+<PurchaseOrders>
+<PurchaseOrder PurchaseOrderNumber="99503" OrderDate="1999-10-20">
+<Address Type="Shipping">
+<Name>Ellen Adams</Name>
+<Street>123 Maple Street</Street>
+<City>Mill Valley</City>
+<State>CA</State>
+<Zip>10999</Zip>
+<Country>USA</Country>
+</Address>
+<Address Type="Billing">
+<Name>Tai Yee</Name>
+<Street>8 Oak Avenue</Street>
+<City>Old Town</City>
+<State>PA</State>
+<Zip>95819</Zip>
+<Country>USA</Country>
+</Address>
+<DeliveryNotes>Please leave packages in shed by driveway.</DeliveryNotes>
+<Items>
+<Item PartNumber="872-AA">
+<ProductName>Lawnmower</ProductName>
+<Quantity>1</Quantity>
+<USPrice>148.95</USPrice>
+<Comment>Confirm this is electric</Comment>
+</Item>
+<Item PartNumber="926-AA">
+<ProductName>Baby Monitor</ProductName>
+<Quantity>2</Quantity>
+<USPrice>39.98</USPrice>
+<ShipDate>1999-05-21</ShipDate>
+</Item>
+</Items>
+</PurchaseOrder>
+<PurchaseOrder PurchaseOrderNumber="99505" OrderDate="1999-10-22">
+<Address Type="Shipping">
+<Name>Cristian Osorio</Name>
+<Street>456 Main Street</Street>
+<City>Buffalo</City>
+<State>NY</State>
+<Zip>98112</Zip>
+<Country>USA</Country>
+</Address>
+<Address Type="Billing">
+<Name>Cristian Osorio</Name>
+<Street>456 Main Street</Street>
+<City>Buffalo</City>
+<State>NY</State>
+<Zip>98112</Zip>
+<Country>USA</Country>
+</Address>
+<DeliveryNotes>Please notify me before shipping.</DeliveryNotes>
+<Items>
+<Item PartNumber="456-NM">
+<ProductName>Power Supply</ProductName>
+<Quantity>1</Quantity>
+<USPrice>45.99</USPrice>
+</Item>
+</Items>
+</PurchaseOrder>
+<PurchaseOrder PurchaseOrderNumber="99504" OrderDate="1999-10-22">
+<Address Type="Shipping">
+<Name>Jessica Arnold</Name>
+<Street>4055 Madison Ave</Street>
+<City>Seattle</City>
+<State>WA</State>
+<Zip>98112</Zip>
+<Country>USA</Country>
+</Address>
+<Address Type="Billing">
+<Name>Jessica Arnold</Name>
+<Street>4055 Madison Ave</Street>
+<City>Buffalo</City>
+<State>NY</State>
+<Zip>98112</Zip>
+<Country>USA</Country>
+</Address>
+<Items>
+<Item PartNumber="898-AZ">
+<ProductName>Computer Keyboard</ProductName>
+<Quantity>1</Quantity>
+<USPrice>29.99</USPrice>
+</Item>
+<Item PartNumber="898-AM">
+<ProductName>Wireless Mouse</ProductName>
+<Quantity>1</Quantity>
+<USPrice>14.99</USPrice>
+</Item>
+</Items>
+</PurchaseOrder>
+</PurchaseOrders>'); --loading xml data into table
+
+select * from xml_doc; 
+
+select object_keys(xml_val) from xml_doc;
+
+select get(xml_val,'$') from xml_doc;
+
+select get(f.value,'@OrderDate') as order_date, get( f.value,'@PurchaseOrderNumber') as order_number,get(XMLGET(f.value,'DeliveryNotes'),'$') as delivery_note,get(f1.value,'@Type') as Address_Type,get(xmlget(f1.value,'Item'),'$') as item,
+get(xmlget(f1.value,'Name'),'$') as Name,get(xmlget(f1.value,'Street'),'$') || ',' || get(xmlget(f1.value,'City'),'$') || ',' || get(xmlget(f1.value,'State'),'$') || ',' || get(xmlget(f1.value,'Zip'),'$') || ',' || get(xmlget(f1.value,'Country'),'$') as Address
+from xml_doc x,
+lateral flatten (x.xml_val:"$") f,
+lateral flatten (f.value:"$") f1; --querying semi structured after flattening/transformation
+
+
+CREATE OR REPLACE TABLE car_sales_another
+( 
+  src variant
+)
+AS
+SELECT PARSE_JSON(column1) AS src
+FROM VALUES
+('{ 
+    "date" : "2017-04-28", 
+    "dealership" : "Valley View Auto Sales",
+    "salesperson" : {
+      "id": "55",
+      "name": "Frank Beasley"
+    },
+    "customer" : [
+      {"name": "Joyce Ridgely", "phone": "16504378889", "address": "San Francisco, CA"}
+    ],
+    "vehicle" : [
+      {"make": "Honda", "model": "Civic", "year": "2017", "price": "20275", "extras":["ext warranty", "paint protection"]}
+    ]
+}'),
+('{ 
+    "date" : "2017-04-28", 
+    "dealership" : "Tindel Toyota",
+    "salesperson" : {
+      "id": "274",
+      "name": "Greg Northrup"
+    },
+    "customer" : [
+      {"name": "Bradley Greenbloom", "phone": "12127593751", "address": "New York, NY"}
+    ],
+    "vehicle" : [
+      {"make": "Toyota", "model": "Camry", "year": "2017", "price": "23500", "extras":["ext warranty", "rust proofing", "fabric protection"]}  
+    ]
+}') v;
+
+select * from car_sales_another;
+
+SELECT src:dealership
+    FROM car_sales_another
+    ORDER BY 1;
+
+
+SELECT src:customer[0].address, src:vehicle[0].price
+    FROM car_sales_another
+    ORDER BY 1;
+
+SELECT src:vehicle[0].price::NUMBER * 0.10 AS tax
+    FROM car_sales_another
+    ORDER BY tax;
+
+SELECT GET_PATH(src, 'vehicle[0].make') FROM car_sales_another;

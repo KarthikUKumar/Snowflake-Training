@@ -1,0 +1,8 @@
+[Credentials]
+username = NRANJAN
+password = Summers@2023
+account = dctetaf-wv99639
+warehouse = compute_wh
+database = COVID19_EPIDEMIOLOGICAL_DATA
+schema = PUBLIC
+role = ACCOUNTADMIN

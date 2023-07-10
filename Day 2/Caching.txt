@@ -1,0 +1,15 @@
+select count(*) from pim_taxonomy; --metadata cache
+
+select City,Count(name) from local_loaded_table group by 1;  --query result cache
+
+alter session set use_cached_result = false;
+
+show parameters like '%use_cached_result%';
+
+
+--data/warehouse cache--
+select * from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.CUSTOMER;
+
+--queries--
+
+

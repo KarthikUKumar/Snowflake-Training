@@ -1,0 +1,41 @@
+-- CREATE TASK--
+create or replace task cdc_task
+warehouse = compute_wh
+schedule  = '5 minute'
+when
+system$stream_has_data('cdc_stream')
+as
+insert into final_tbl select cdc_col_1,cdc_col_2,cdc_col_3 from cdc_stream;
+
+
+show tasks;
+--'USING CRON 0 2 * * SUN '
+
+--Start the task--
+alter task cdc_task suspend;
+
+execute task cdc_task; --executeing task manually
+
+select * from cdc_stream;
+
+--insert few records to the cdc_table--
+insert into cdc_table values (
+  'cdc-val-41', 'cdc-val-42', 'cdc-val-43'),
+  ('cdc-val-51', 'cdc-val-52', 'cdc-val-53'),
+  ('cdc-val-61', 'cdc-val-62', 'cdc-val-63');
+
+
+select * from cdc_stream;
+
+-- how to see how it works
+select * from table(information_schema.task_history())  
+--where name='cdc_task'
+  order by scheduled_time desc;
+-- you can see only the schedule items
+select * from table(information_schema.task_history())  
+  where state ='SCHEDULED' order by scheduled_time;
+
+
+select * from final_tbl;
+
+alter task cdc_task suspend;

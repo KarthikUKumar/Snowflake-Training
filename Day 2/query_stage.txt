@@ -1,0 +1,55 @@
+--querying staged table--
+select $1,$2,$3,$4,$5 from @MY_AZURE_STAGE/training_files/unloading/ ;--querying csv file
+
+create or replace FILE FORMAT my_parquet_format TYPE='parquet';
+select $1:country:city from @MY_AZURE_STAGE/training_files/Parquet_sample/
+(file_format=>'my_parquet_format');--querying parquet file
+
+CREATE OR REPLACE FILE FORMAT my_json_format TYPE = 'json';
+
+list @MY_AZURE_STAGE/training_files/Parquet_file/;
+
+
+SELECT parse_json($1):a.b from @MY_AZURE_STAGE/training_files/JSON/sample.json
+(file_format=>'my_json_format'); --querying Json file
+
+create or replace FILE FORMAT my_xml_format TYPE='xml';
+select $1 from @MY_AZURE_STAGE/training_files/XML/
+(file_format=>'my_xml_format');
+
+ select XMLGET($1, 'book'):"$" as id
+  from @MY_AZURE_STAGE/training_files/XML_sample/
+(file_format=>'my_xml_format');--querying xml file
+
+
+select $1 from @MY_AZURE_STAGE/training_files/JSON/sample1.json;
+create or replace table json_table (v variant); --creating table with variant data type
+copy into json_table from @MY_AZURE_STAGE/training_files/JSON/sample1.json
+file_format='my_json_format'; --loading json data
+
+select * from json_table;
+
+select v:"batters" from json_table;
+
+
+create or replace table json_table1(v variant);
+copy into json_table1 from @MY_AZURE_STAGE/training_files/JSON/json_sample.json
+file_format='my_json_format';--loading raw JSON data into table single column
+ 
+select v:FullName::string as Full_Name from json_table1; --accessing json element
+
+select v:PhoneNumber.AreaCode::string as Areacode,v:PhoneNumber.SubscriberNumber::string as Subscriber_Number,v:Age::int as Age,v:Gender::string as Gender,v:FullName::string as Full_Name from json_table1; --querying elements
+
+--handling Arrays
+select f.value:School::string as school,f.value:Address::string as address,f.value:Year::string as year from json_table1,table(flatten(v:Education))f;--using flatten
+
+select v:FullName::string as Full_Name,f.value:School::string as school,f.value:Address::string as address,f.value:Year::string as year from json_table1,table(flatten(v:Education))f;
+
+--array within an array
+select cl.value:CityName::string as city_name,yl.value::string as year_lived from json_table1,table(flatten(v:Cities))cl,table(flatten(cl.value:YearsLived))yl;
+--hERE second flatten that transforms YearsLived array within Flattened Cities array. 
+--“yl” which transforms or pivots YearsLived array for each value returned from the first Flatten of the Cities array “cl”.
+
+
+--DATA AGGREGATION
+select cl.value:CityName::string as city_name,to_char(count(*)) as year_lived from json_table1,table(flatten(v:Cities))cl, table(flatten(cl.value:YearsLived))yl group by 1;

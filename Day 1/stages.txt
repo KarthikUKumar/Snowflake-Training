@@ -1,0 +1,69 @@
+--FILEFORMAT--
+create or replace file format my_csv_format
+  type = csv
+  field_delimiter = ','
+  skip_header = 1
+  FIELD_OPTIONALLY_ENCLOSED_BY='"';
+
+--Details about the file formats- https://docs.snowflake.com/en/sql-reference/sql/create-file-format/
+SHOW File formats;
+
+--STAGE--
+--INTERNAL NAMED STAGE--
+create or replace stage my_internal_stage;
+List @my_internal_stage;
+
+
+/*--Locally Loading Data--
+PUT file://C:\Users\ac97599\Downloads\Sample_CSV_file.csv @MY_INTERNAL_STAGE;
+//this command runs only in the snowsql;*/
+
+--create table--
+create or replace table local_loaded_table(id int,name string,designation varchar,city text);
+
+list @my_internal_stage;
+
+select $1,$2,$3,$4,$5 from @my_internal_stage/local_internal/;
+
+copy into local_loaded_table from @my_internal_stage/local_internal/ 
+file_format=(type='CSV' field_delimiter=',' skip_header=1);
+
+select * from local_loaded_table;
+
+
+SELECT *
+FROM information_schema.load_history
+WHERE schema_name=current_schema() AND
+table_name='LOCAL_LOADED_TABLE' AND
+last_load_time < 'Mon, 03 July 2023 18:57:00 -0530';
+
+
+
+--TABLE STAGE--
+create table table_staged(id int,name varchar,percentage float);
+
+select * from table_staged;
+
+List @%TABLE_STAGED;
+
+copy into table_staged from @%TABLE_STAGED/ 
+file_format=(type='CSV' field_delimiter=',' skip_header=1);
+
+--USERSTAGE--
+List @~/;
+
+copy into @~ from local_loaded_table
+file_format=(type='CSV' FIELD_DELIMITER = ',' COMPRESSION = None)
+overwrite=true;
+
+select $1,$2,$3,$4 from @~/;
+
+/*Download from a User stage using snowsql
+GET @~ file:///tmp/data/;
+
+*/
+
+
+SHOW STAGES;
+
+

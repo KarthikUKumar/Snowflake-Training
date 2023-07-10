@@ -1,0 +1,13 @@
+--Unloading to external storage (Azure)
+COPY INTO @my_azure_stage/training_files/unloading/a.csv from stage_tranform
+file_format=(type='CSV' FIELD_DELIMITER = ',' COMPRESSION = None)
+overwrite=true;
+
+--unloading to internal snowflake storage
+copy into @sample from stage_tranform
+file_format=(type='CSV' FIELD_DELIMITER = ',' COMPRESSION = None)
+overwrite=true;
+
+select $1,$2,$3,$4,$5 from @my_azure_stage/training_files/unloading/a.csv;
+
+select $1,$2,$3 from @my_azure_stage/training_files/transform/;

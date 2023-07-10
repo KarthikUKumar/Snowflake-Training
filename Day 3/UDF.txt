@@ -1,0 +1,40 @@
+-- Scalar UDF--
+CREATE OR REPLACE FUNCTION Simple_Interest(p float,r float,t int)
+RETURNS Float
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+HANDLER = 'simple_interest_py'
+as
+$$
+def simple_interest_py(p,r,t):
+  return p*r*t/100;
+$$;
+
+select Simple_Interest(1000,5,2);
+
+
+
+
+--Tabular UDF--
+create or replace function sample_udtf(num1 number, num2 number)
+returns table (num1 number,num2 number, total number)
+language python
+runtime_version=3.8
+handler='SampleUDTF'
+as $$
+class SampleUDTF:
+    def __init__(self):
+        self._cost_total = 0
+
+    def process(self, num1, num2):
+        if num1 < self._cost_total:
+           yield None
+        else:
+           total=num1*num2
+           yield (num1,num2,total)
+$$;
+
+select num1,num2,total from table(sample_udtf(-2,7));
+
+select day(to_date('2023-04-24'));
+

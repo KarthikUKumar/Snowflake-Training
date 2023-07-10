@@ -1,0 +1,24 @@
+CREATE OR REPLACE TABLE t1 (
+   id number(8) NOT NULL,
+   c1 varchar(255) default NULL
+ );
+
+ create or replace stream stream_t1 on table t1;
+
+ select * from stream_t1;
+
+ INSERT INTO t1 (id,c1)
+ VALUES
+ (1,'red'),
+ (2,'blue'),
+ (3,'green');
+
+ select * from stream_t1;
+ 
+ DELETE FROM t1 WHERE id = 1;
+
+ select * from stream_t1;
+
+ UPDATE t1 SET c1 = 'purple' WHERE id = 2;
+
+ select * from stream_t1;

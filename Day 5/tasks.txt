@@ -1,0 +1,115 @@
+create or replace task SRC_TRUNC
+warehouse='COMPUTE_WH'
+schedule='15 minute'
+as truncate table student_src;
+
+create or replace task Stage_to_Table
+warehouse='COMPUTE_WH'
+after SRC_TRUNC
+as copy into student_src from @MY_AZURE_STAGE/training_files/stream_data/
+file_format=(type='CSV' skip_header=1);
+
+create or replace task IMP_SCD_1
+warehouse='COMPUTE_WH'
+after Stage_to_Table
+as merge into student_landing dst
+using student_src src
+on dst.id=src.id
+when matched and (dst.name!=src.name or dst.percentage!=src.percentage)
+then update set dst.name=src.name, dst.percentage=src.percentage
+when not matched 
+then insert values(src.id,src.name,src.percentage);
+
+
+
+create or replace task IMP_SCD_2_a
+warehouse='COMPUTE_WH'
+after IMP_SCD_1
+as merge into student_staging dst
+using student_check src --stream
+on dst.id=src.id 
+when matched and src.METADATA$ACTION='DELETE'
+then update set dst.end_time=current_timestamp(),dst.flag='N'
+when not matched and src.METADATA$ACTION='INSERT' 
+then insert values(src.id,src.name,src.percentage,current_timestamp(),null,'Y');
+
+/*create or replace task IMP_SCD_2_b
+warehouse='COMPUTE_WH'
+after IMP_SCD_2_a
+as insert into student_staging
+select distinct src.id,src.name,src.percentage,current_timestamp(),null,'Y' 
+from student_landing src 
+join student_staging  dest
+on src.id=dest.id and dest.flag='N';*/
+
+create or replace task IMP_SCD_2_b
+warehouse='COMPUTE_WH'
+after IMP_SCD_2_a
+as insert into student_staging
+select id,name,percentage,current_timestamp(),null,'Y' 
+from (select * from student_src minus select id,name,percentage from student_staging);
+
+
+create or replace task Load_Analytics
+warehouse='COMPUTE_WH'
+after IMP_SCD_2_b
+as insert overwrite into student_analytics
+select id,name,percentage from student_staging where flag='Y';
+
+
+create or replace task src_rem
+warehouse='COMPUTE_WH'
+after Load_Analytics
+as remove @MY_AZURE_STAGE/training_files/stream_data/;
+
+
+--start a task--
+select system$task_dependents_enable('src_trunc');
+
+alter task SRC_TRUNC suspend;  --suspending/stoping the task
+
+alter task SRC_TRUNC resume; --executing the task
+
+execute task src_trunc; --executeing task manually
+
+--list tasks--
+show tasks;
+
+-- how to see how it works
+select * from table(information_schema.task_history())  
+  order by scheduled_time desc;
+-- you can see only the schedule items
+select * from table(information_schema.task_history())  
+  where state ='SUCCEEDED' and name!='SRC_TRUNC' order by scheduled_time desc;
+
+select * from student_src; --
+
+select * from student_landing;
+
+select * from student_staging;
+
+/*truncate table student_landing;
+
+truncate table student_staging;*/
+
+SELECT SYSTEM$USER_TASK_CANCEL_ONGOING_EXECUTIONS('src_trunc');
+
+(SELECT SUM(credits_used)
+  FROM TABLE(TEST_DB.information_schema.serverless_task_history(
+    date_range_start=>dateadd(D, -1, current_timestamp()),
+    date_range_end=>dateadd(D, 1, current_timestamp()),
+    task_name => 'SRC_TRUNC')
+    )
+  );
+
+SELECT start_time,
+  end_time,
+  task_id,
+  task_name,
+  credits_used,
+  schema_id,
+  schema_name,
+  database_id,
+  database_name
+FROM snowflake.account_usage.serverless_task_history
+ORDER BY start_time, task_id;

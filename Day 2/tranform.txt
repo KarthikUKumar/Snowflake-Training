@@ -1,0 +1,60 @@
+--using REPLACE function
+CREATE OR REPLACE TABLE replace_example(subject varchar(10), pattern varchar(10), replacement varchar(10));
+INSERT INTO replace_example VALUES('snowman', 'snow', 'fire'), ('sad face', 'sad', 'happy');
+
+SELECT subject, pattern, replacement, REPLACE(subject, pattern, replacement) AS new FROM replace_example; --using REPLACE
+
+select * from replace_example where subject like '%man';--using LIKE
+
+insert into tranformed_table (SELECT subject, pattern, replacement, REPLACE(subject, pattern, replacement) AS new FROM replace_example); --inserting tranformed results referring from table
+
+CREATE OR REPLACE TABLE tranformed_table(subject varchar(10), pattern varchar(10), replacement varchar(10),new varchar(10));
+
+--illustration of column re ordering,SPLIT,LTRIM,CASE referring from an external stage which refer azure storage
+create or replace table stage_tranform(name varchar, Id number, location varchar, salary number, salary_category_code varchar);
+
+COPY INTO stage_tranform FROM
+(
+SELECT
+LTRIM(SPLIT_PART($1,'|',1),'@!#') AS NAME,
+SPLIT_PART($1,'|',2) AS ID,
+$3 AS location,
+$2 AS Salary,
+case when salary <= 5000 then 'Low Range'
+when salary > 5000 and salary <= 7000 then 'Mid Range'
+else 'High Range' end AS salary_category_code
+from @my_azure_stage/training_files/transform/
+);
+
+select * from stage_tranform; --data cleaning is illustrated
+
+--https://docs.snowflake.com/en/sql-reference/functions-all
+
+SELECT TO_DATE('02/14/2014', 'MM/DD/YYYY'), DATE('02/14/2014', 'MM/DD/YYYY'); --IT'LL display in YYYY-MM-DD
+
+CREATE or replace TABLE demo1 (
+    description VARCHAR,
+    value VARCHAR -- yes, string rather than bigint
+    );
+
+INSERT INTO demo1 (description, value) VALUES
+   ('Seconds',      '31536000'),
+   ('Milliseconds', '31536000000'),
+   ('Microseconds', '31536000000000'),
+   ('Nanoseconds',  '31536000000000000')
+   ;
+
+SELECT
+       description,
+       value,
+       TO_TIMESTAMP(value),
+       TO_DATE(value),
+       to_time(value),
+       try_to_date(value),
+       cast(value as date),
+       dayname(VALUE)
+    FROM demo1
+    ORDER BY value
+    ;
+
+

@@ -1,0 +1,8 @@
+CREATE OR REPLACE FUNCTION Simple_Interest_stage(p float,r float,t int)
+RETURNS Float
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+Imports=('@MY_INTERNAL_STAGE/UDF_Stage/Simple_Interest.py')
+HANDLER = 'Simple_Interest.simple_interest_py';
+
+select Simple_Interest_stage(14563,5.4,2);

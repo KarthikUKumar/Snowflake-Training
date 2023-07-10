@@ -1,0 +1,19 @@
+USE SCHEMA TEST_SCHEMA;
+
+CREATE OR REPLACE SEQUENCE seq_01 START = 1 INCREMENT = 1;
+
+SELECT seq_01.nextval;
+
+alter sequence seq_01 set increment=4;
+
+CREATE OR REPLACE TABLE sequence_test_table (id INTEGER,name string);
+INSERT INTO sequence_test_table (id,name) VALUES (seq_01.nextval,'Lakshman');
+
+select * from sequence_test_table;
+
+CREATE OR REPLACE SEQUENCE seq90;
+CREATE OR REPLACE TABLE sequence_demo (id INTEGER DEFAULT seq90.nextval, name varchar(20));
+INSERT INTO sequence_demo (name) VALUES ('Vinish');
+INSERT INTO sequence_demo (name) VALUES ('Ram'),('Varun'),('Ruthik');
+
+select * from sequence_demo;

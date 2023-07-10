@@ -1,0 +1,55 @@
+
+
+use role accountadmin;
+grant create database on account to role public;
+
+----------------------------------------------------
+GRANT OPERATE ON WAREHOUSE COMPUTE_WH TO ROLE accountadmin;
+
+show users;
+alter user udayc reset password;
+
+create or replace user  karthiku password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  UdayC password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  SandeepB password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  VidyasagarA password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   DarlaD password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  MohammadS password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  MallikarjunaR password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  SandhyaraniP password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  khajakamaluddinm password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  MahenderK password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  SasikanthM password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  HariniB password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   PratibhaS password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  ManojM password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  PadmasekharP password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  NikhilT password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  VenkatasivaS password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   RachnaB password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  BhargaviK password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  ArpitaS password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  MaharshiU password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   DevakivadaS password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  ArjunG password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  RamadeviK password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  VenkateswarluV password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   GorijalaS password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  NaveenavenkataJ password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   KothapalliJ password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  VijayY password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  PraveenReddyY password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  YenikapatiV password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user   SreenivasaraoB password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  BasaveshwarB password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  reddyp password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  shahdabs password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  akhilk password='Summer@2023' default_role=USERADMIN must_change_password = true;
+create or replace user  ravirajut password='Summer@2023' default_role=USERADMIN must_change_password = true;
+
+
+GRANT operate on WAREHOUSE compute_wh TO ROLE public;
+GRANT USAGE
+  ON WAREHOUSE compute_wh
+  TO ROLE public;
+

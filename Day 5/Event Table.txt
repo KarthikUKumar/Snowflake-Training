@@ -1,0 +1,10 @@
+CREATE EVENT TABLE my_events;
+
+select * from my_events;
+
+ALTER ACCOUNT SET EVENT_TABLE = test_db.test_schema.my_events;
+
+SHOW PARAMETERS LIKE 'event_table' IN ACCOUNT;
+
+select *
+from table(information_schema.external_table_files(TABLE_NAME=>''));

@@ -1,0 +1,87 @@
+show shares;
+--older method without using database role
+select * from employees;
+
+create table test_db.test_schema.employee_details (
+  employee_id int,
+  name string,
+  mail_id string,
+  is_active boolean
+);
+insert into test_db.test_schema.employee_details values(200,'Kamala','Kamala.Ukumar@Lumen.com',0);
+delete from employee_details where employee_id=101 and is_active=0;
+select * from employee_details;
+
+create or replace schema shared;
+
+--creating secure view which will be shared to reader
+create or replace secure view test_db.shared.sharedview as
+select employee.employee_id,details.name, details.mail_id
+from test_db.test_schema.employees employee
+join test_db.test_schema.employee_details details on employee.employee_id = details.employee_id
+where details.is_active=1;
+select * from test_db.shared.sharedview;
+create or replace share share1;--defining share
+
+--use role SECURITYADMIN;
+GRANT USAGE ON DATABASE test_db TO SHARE share1;
+
+GRANT USAGE ON SCHEMA test_db.shared TO SHARE share1;
+
+--GRANT USAGE ON FUNCTION mydb.shared_schema.function1 TO SHARE share1;
+
+--GRANT USAGE ON FUNCTION mydb.shared_schema.function2 TO SHARE share1;
+GRANT usage on schema test_schema to share share1;
+
+GRANT SELECT ON view test_db.shared.sharedview TO SHARE share1;
+
+GRANT USAGE ON SCHEMA mydb.shared_schema TO SHARE share1;
+
+--GRANT SELECT ON VIEW mydb.shared_schema.view1 TO SHARE share1;
+
+--GRANT SELECT ON VIEW mydb.shared_schema.view3 TO SHARE share1;
+GRANT SELECT ON table test_db.test_schema.local_loaded_table to share share1;
+
+ALTER SHARE share1 ADD ACCOUNT=gv38867;
+
+--creating shares as defining database role
+CREATE DATABASE ROLE TEST_DB.r3;
+
+CREATE DATABASE ROLE TEST_DB.r2;
+
+GRANT USAGE ON SCHEMA TEST_DB.TEST_SCHEMA TO DATABASE ROLE TEST_DB.r3;
+GRANT SELECT ON TABLE TEST_DB.TEST_SCHEMA.LOCAL_LOADED_TABLE TO DATABASE ROLE TEST_DB.r3; --defining TEST_DB.TEST_SCHEMA
+
+/*GRANT USAGE ON SCHEMA d1.s1 TO DATABASE ROLE d1.r2;
+GRANT SELECT ON VIEW d1.s1.v2 TO DATABASE ROLE d1.r2;*/
+
+SHOW GRANTS TO DATABASE ROLE TEST_DB.r3;
+--SHOW GRANTS TO DATABASE ROLE d1.r2;--displaying grants on database roles
+
+CREATE SHARE share3;
+
+GRANT USAGE ON DATABASE TEST_DB TO SHARE share3;
+
+GRANT DATABASE ROLE TEST_DB.r3 TO SHARE share3;
+GRANT DATABASE ROLE d1.r2 TO SHARE share1;
+
+ALTER SHARE share3 ADD ACCOUNTS = gv38867;
+
+USE ROLE ACCOUNTADMIN;
+
+/*CREATE MANAGED ACCOUNT reader_acct1
+    ADMIN_NAME = user1 , ADMIN_PASSWORD = 'Sdfed43da!44' ,
+    TYPE = READER;
+    
+    USE ROLE ACCOUNTADMIN;
+
+DROP MANAGED ACCOUNT reader_acct1;*/
+show shares;
+SHOW MANAGED ACCOUNTS;
+select * from student_src;
+select * from student_landing;
+select * from student_staging;
+show tasks;
+execute task SRC_TRUNC;
+list @my_azure_stage;
+select * from directory(@my_azure_directory);

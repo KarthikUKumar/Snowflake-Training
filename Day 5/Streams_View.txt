@@ -1,0 +1,22 @@
+create or replace table orders (id int, order_name varchar);
+create or replace table customers (id int, customer_name varchar);
+
+create or replace view ordersByCustomer as select * from orders natural join customers;
+insert into orders values (1, 'order1');
+insert into customers values (1, 'customer1');
+
+create or replace stream ordersByCustomerStream on view ordersBycustomer;
+
+select * from ordersByCustomer;
+
+
+select * from ordersByCustomerStream;
+
+insert into orders values (1, 'order2');
+select * from ordersByCustomer;
+
+select *  from ordersByCustomerStream;
+
+insert into customers values (1, 'customer2');
+select * from ordersByCustomer;
+

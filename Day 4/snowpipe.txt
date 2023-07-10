@@ -1,0 +1,61 @@
+create or replace table local_loaded_table(id int,name string,designation string,city string);
+CREATE or replace STAGE my_azure_stage 
+URL = 'azure://chinmaydatabricks.blob.core.windows.net/database'
+CREDENTIALS = (AZURE_SAS_TOKEN = '?sv=2022-11-02&ss=bfqt&srt=co&sp=rwdlacupyx&se=2023-05-25T16:00:47Z&st=2023-05-22T08:00:47Z&spr=https&sig=wlMJe5%2F5a44NxDyyp21%2BzB1LRjWdU2doawVsuyTJlMY%3D');
+select * from local_loaded_table; -- table we're using to demo snowpipe
+list @TEST_DB.TEST_SCHEMA.MY_AZURE_STAGE/training_files/local_file/; --list file placed in stage
+
+CREATE or replace NOTIFICATION INTEGRATION INTEGRATION1
+ENABLED=TRUE
+TYPE=QUEUE
+NOTIFICATION_PROVIDER=AZURE_STORAGE_QUEUE
+AZURE_STORAGE_QUEUE_PRIMARY_URI='https://chinmaydatabricks.queue.core.windows.net/sample' 
+AZURE_TENANT_ID='640f94f1-4514-4053-b838-f019a031e6d1'; --creating notification integration runtime
+
+DESC NOTIFICATION INTEGRATION  INTEGRATION1; --referring azure consent URL
+
+CREATE OR REPLACE PIPE DEMO_SNOWPIPE
+AUTO_INGEST=TRUE
+INTEGRATION=INTEGRATION1
+AS
+COPY INTO local_loaded_table
+FROM @MY_AZURE_STAGE/training_files/local_file/; --defining snowpipe for a specififc table
+
+select SYSTEM$PIPE_STATUS( 'DEMO_SNOWPIPE' );
+--SYSTEM$PIPE_STATUS( 'DEMO_SNOWPIPE' );
+
+alter pipe DEMO_SNOWPIPE SET PIPE_EXECUTION_PAUSED = True; --pAUSING A PIPE
+
+--alter pipe DEMO_SNOWPIPE SET COMMENT = "Pipe for North American sales data";
+
+--ALTER PIPE DEMO_SNOWPIPE REFRESH; --TO REFRESH THE pipe
+
+ALTER PIPE DEMO_SNOWPIPE REFRESH MODIFIED_AFTER='2018-07-30T13:56:46-07:00';
+
+show pipes;
+
+DESCRIBE pipe DEMO_SNOWPIPE;
+
+select * from local_loaded_table;
+
+
+alter pipe DEMO_SNOWPIPE refresh;
+
+select COUNT(*) from TEST_DB.TEST_SCHEMA.PO_DETAIL1;
+
+--ALTER EXTERNAL TABLE ext_table REFRESH; --manually external table refresh
+SELECT SYSTEM$PIPE_FORCE_RESUME('mydb.myschema.stalepipe1','staleness_check_override');-- it'll resume a stale pipe by using parameter
+
+drop table local_loaded_table;
+drop pipe DEMO_SNOWPIPE;
+select * from table(information_schema.notification_history(
+  START_TIME=>dateadd('hour',-18,current_timestamp())
+  ));
+
+select *
+from table(information_schema.copy_history(TABLE_NAME=>'test_db.test_schema.local_loaded_table', START_TIME=> DATEADD(hours, -18, CURRENT_TIMESTAMP())));--copy history
+
+select * from table(information_schema.pipe_usage_history(date_range_start=>dateadd('hour',-21,current_timestamp()),
+pipe_name=>'TEST_DB.TEST_SCHEMA.DEMO_SNOWPIPE'));--pipe usage history
+
+show external_table_files;

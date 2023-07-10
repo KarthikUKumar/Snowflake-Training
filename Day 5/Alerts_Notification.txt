@@ -1,0 +1,82 @@
+create or replace table alert_track(a timestamp);
+
+GRANT EXECUTE ALERT ON ACCOUNT TO ROLE ACCOUNTADMIN;
+
+GRANT CREATE ALERT ON SCHEMA information_schema TO ROLE accountadmin;
+GRANT USAGE ON SCHEMA information_schema TO ROLE accountadmin;
+
+CREATE OR REPLACE ALERT myalert
+  WAREHOUSE = compute_wh
+  SCHEDULE = '1 minute'
+  IF( EXISTS(
+    select * from local_loaded_table where id=20))
+  THEN
+    INSERT INTO alert_track VALUES (current_timestamp());
+
+select status
+from information_schema.copy_history(TABLE_NAME=>'test_db.test_schema.local_loaded_table');
+
+CREATE OR REPLACE ALERT alert_new_rows
+  WAREHOUSE = my_warehouse
+  SCHEDULE = '1 MINUTE'
+  IF (EXISTS (
+      SELECT *
+      FROM my_table
+      WHERE row_timestamp BETWEEN SNOWFLAKE.ALERT.LAST_SUCCESSFUL_SCHEDULED_TIME()
+       AND SNOWFLAKE.ALERT.SCHEDULED_TIME()
+  ))
+  THEN CALL SYSTEM$SEND_EMAIL(...); --this will send an email whenever a new row is added between the time that the last successfully evaluated alert was scheduled and the time when the current alert has been scheduled
+
+CREATE NOTIFICATION INTEGRATION my_email_int
+    TYPE=EMAIL
+    ENABLED=TRUE
+    ALLOWED_RECIPIENTS=('first.last@example.com','first2.last2@example.com');
+    
+    CALL SYSTEM$SEND_EMAIL(
+    'my_email_int',
+    'person1@example.com, person2@example.com',
+    'Email Alert: Task A has finished.',
+    'Task A has successfully finished.\nStart Time: 10:10:32\nEnd Time: 12:15:45\nTotal Records Processed: 115678'
+);*/
+
+select *
+from table(information_schema.copy_history(TABLE_NAME=>'test_db.test_schema.local_loaded_table', START_TIME=> DATEADD(minute, 1, CURRENT_TIMESTAMP())));
+
+ALTER ALERT myalert RESUME;
+select * from alert_track;
+
+ALTER ALERT my_alert SET SCHEDULE = '2 minutes';
+
+ALTER ALERT myalert SUSPEND; 
+
+ALTER ALERT my_alert MODIFY CONDITION EXISTS (SELECT id FROM local_loaded_table WHERE id=70);
+
+ALTER ALERT my_alert MODIFY ACTION CALL my_procedure();
+
+DESC ALERT myalert;
+
+SELECT *
+FROM
+  TABLE(INFORMATION_SCHEMA.ALERT_HISTORY(
+    SCHEDULED_TIME_RANGE_START
+      =>dateadd('hour',-1,current_timestamp())))
+ORDER BY SCHEDULED_TIME DESC;
+
+
+--snowpipe error notification
+
+CREATE NOTIFICATION INTEGRATION error_integration
+  ENABLED = true
+  TYPE = QUEUE
+  NOTIFICATION_PROVIDER = AZURE_EVENT_GRID
+  DIRECTION = OUTBOUND
+  AZURE_EVENT_GRID_TOPIC_ENDPOINT = 'https://error-notify.eastus-1.eventgrid.azure.net/api/events'
+  AZURE_TENANT_ID = '640f94f1-4514-4053-b838-f019a031e6d1';
+
+  DESC NOTIFICATION INTEGRATION error_integration;
+
+  ALTER PIPE DEMO_SNOWPIPE SET ERROR_INTEGRATION = error_integration;
+
+  DESC PIPE DEMO_SNOWPIPE;
+list @my_azure_stage;
+select * from table(information_schema.notification_history())--retrieveing notification history which is sent through snowpipe

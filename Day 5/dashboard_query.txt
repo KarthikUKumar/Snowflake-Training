@@ -1,0 +1,3 @@
+select country_region, sum(cases) as total_cases, sum(deaths) as total_deaths 
+from COVID19_EPIDEMIOLOGICAL_DATA.PUBLIC.ECDC_GLOBAL 
+group by country_region;

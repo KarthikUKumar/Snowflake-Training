@@ -1,0 +1,125 @@
+SELECT CURRENT_REGION();
+show regions like '%AZURE_EASTUS2';
+SHOW REGIONS;
+
+CREATE OR REPLACE WAREHOUSE multi_wh WAREHOUSE_SIZE=LARGE INITIALLY_SUSPENDED=TRUE
+MAX_CLUSTER_COUNT=3
+MIN_CLUSTER_COUNT=1
+SCALING_POLICY =ECONOMY
+AUTO_SUSPEND=600;
+
+show warehouses;
+
+describe warehouse multi_wh;
+
+CREATE OR REPLACE WAREHOUSE my_wh WITH WAREHOUSE_SIZE='X-SMALL';
+
+
+select * from test_db.test_schema.employees;
+USE WAREHOUSE my_wh;
+
+USE DATABASE "TEST_DB";
+
+USE SCHEMA "TEST_SCHEMA";
+
+SELECT * FROM TEST_TABLE;
+
+show warehouses;
+
+select * from SNOWFLAKE_SAMPLE_DATA.TPCDS_SF100TCL.CATALOG_RETURNS;
+
+SELECT PARSE_JSON(SYSTEM$ESTIMATE_QUERY_ACCELERATION('01acea42-0b04-a085-0000-00034b42b655'));
+
+--to query all the queries which is eligible for QAS in the warehouse
+select query_id, eligible_query_acceleration_time
+from snowflake.account_usage.query_acceleration_eligible
+where warehouse_name = 'COMPUTE_WH'
+order by eligible_query_acceleration_time desc;
+
+--this will display count of queries by each warehouse
+SELECT warehouse_name, count(query_id) as num_eligible_queries, MAX(upper_limit_scale_factor)
+  FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_ACCELERATION_ELIGIBLE
+  WHERE start_time > DATEADD(month, -1, CURRENT_TIMESTAMP())
+  GROUP BY warehouse_name
+  ORDER BY num_eligible_queries DESC;
+
+  
+--to view how much time will be saved by each warehouse
+SELECT warehouse_name
+      , SUM(eligible_query_acceleration_time) AS total_eligible_time
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_ACCELERATION_ELIGIBLE
+GROUP BY warehouse_name
+ORDER BY total_eligible_time DESC;
+
+--enabling QAS and setting up max scale factor
+alter warehouse my_wh set enable_query_acceleration = true query_acceleration_max_scale_factor = 8;
+
+--example illustration
+ALTER SESSION SET USE_CACHED_RESULT = FALSE;
+SELECT d.d_year as "Year",
+       i.i_brand_id as "Brand ID",
+       i.i_brand as "Brand",
+       SUM(ss_net_profit) as "Profit"
+FROM   snowflake_sample_data.tpcds_sf10tcl.date_dim    d,
+       snowflake_sample_data.tpcds_sf10tcl.store_sales s,
+       snowflake_sample_data.tpcds_sf10tcl.item        i
+WHERE  d.d_date_sk = s.ss_sold_date_sk
+  AND s.ss_item_sk = i.i_item_sk
+  AND i.i_manufact_id = 939
+  AND d.d_moy = 12
+GROUP BY d.d_year,
+         i.i_brand,
+         i.i_brand_id
+ORDER BY 1, 4, 2
+LIMIT 200;
+
+--comparing non QAS and QAS
+SELECT query_id,
+       query_text,
+       warehouse_name,
+       total_elapsed_time
+FROM TABLE(snowflake.information_schema.query_history())
+WHERE query_id IN ('01acea47-0b04-a090-0000-00034b42c4a9', '01acea48-0b04-a085-0000-00034b42b6b9')
+ORDER BY start_time;
+
+--identification of queries with high eligible time ration
+SELECT query_id,
+       query_text,
+       start_time,
+       end_time,
+       warehouse_name,
+       warehouse_size,
+       eligible_query_acceleration_time,
+       upper_limit_scale_factor,
+       DATEDIFF(second, start_time, end_time) AS total_duration,
+       eligible_query_acceleration_time / NULLIF(DATEDIFF(second, start_time, end_time), 0) AS eligible_time_ratio
+FROM
+    SNOWFLAKE.ACCOUNT_USAGE.QUERY_ACCELERATION_ELIGIBLE
+WHERE
+    start_time >= DATEADD(day, -30, CURRENT_TIMESTAMP())
+    AND eligible_time_ratio <= 1.0
+    AND total_duration BETWEEN 3 * 60 and 5 * 60
+ORDER BY (eligible_time_ratio, upper_limit_scale_factor) DESC NULLS LAST
+LIMIT 100;
+
+--queries which used query accelaration service in past 24hours
+SELECT query_id,
+       query_text,
+       warehouse_name,
+       start_time,
+       end_time,
+       query_acceleration_bytes_scanned,
+       query_acceleration_partitions_scanned,
+       query_acceleration_upper_limit_scale_factor
+  FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+  WHERE query_acceleration_partitions_scanned > 0 
+  AND start_time >= DATEADD(hour, -24, CURRENT_TIMESTAMP())
+  ORDER BY query_acceleration_bytes_scanned DESC;
+
+--total credits used by each warehouse for query acceleration
+SELECT warehouse_name,
+       SUM(credits_used) AS total_credits_used
+  FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_ACCELERATION_HISTORY
+  WHERE start_time >= DATE_TRUNC(month, CURRENT_DATE)
+  GROUP BY 1
+  ORDER BY 2 DESC;

@@ -1,0 +1,146 @@
+--Dynamic data masking
+create or replace role MASKINGADMIN; --creates custom role masking
+
+grant create masking policy on schema TEST_DB.TEST_SCHEMA to role MASKINGADMIN; --grants privileges to create masking policies to the role MASKINGADMIN.
+
+grant apply masking policy on account to role MASKINGADMIN; --GRANTS PRIVILIDGES to apply masking policy
+
+grant role MASKINGADMIN to role JUNIOR_DBA; --to allow users with JUNIOR_DBA role to inherit masking privileges.
+--Note that instead of the custom role we can also specify individual user to assign MASKINGADMIN
+grant role MASKINGADMIN to user karthiku;
+
+--GRANT select ON table tranformed_table to role securityadmin;
+
+create or replace masking policy STRING_MASK as (val string) returns string ->
+  case
+        when current_role() in ('ACCOUNTADMIN') then val
+    else '*****'
+  end; -- this is to define a masking policy which can be applied to any column of type 'string'
+
+  --This masking policy masks the data applied on a column when queried from a role other than JUNIOR_DBA.
+
+  alter table if exists LOCAL_LOADED_TABLE modify column NAME set masking policy STRING_MASK;
+--APPLIED masking policy on column 'NEW' of table TRANFORMED_TABLE
+GRANT usage ON database test_db TO ROLE junior_dba;
+GRANT usage ON SCHEMA test_schema TO ROLE junior_dba;
+GRANT select on table LOCAL_LOADED_TABLE TO ROLE junior_dba;
+
+
+select * from LOCAL_LOADED_TABLE;
+
+drop masking policy STRING_MASK;
+
+use role JUNIOR_DBA;
+
+show roles;
+
+describe masking policy condition_mask;
+
+describe table LOCAL_LOADED_TABLE;
+
+alter table if exists LOCAL_LOADED_TABLE modify COLUMN NAME unset masking policy ;--UN ATTACHING masking policy from a table column
+
+create or replace masking policy condition_mask as (mask_col string, cond_col string) returns string ->
+  case
+    when current_role() in ('ACCOUNTADMIN') and cond_col ='Data Engineer' then mask_col
+    --when cond_col ='Data Engineer' then mask_col
+    else '*********'
+  end;--conditional masking which will mask certian rows
+
+alter table if exists LOCAL_LOADED_TABLE modify column NAME set masking policy condition_mask using(name, designation);
+select * from local_loaded_table;
+select name from LOCAL_LOADED_TABLE;
+select Name from LOCAL_LOADED_TABLE where Name='Karan';
+show tables;
+grant select on table local_loaded_table to role JUNIOR_DBA;
+show masking policies;
+
+describe masking policy;
+
+alter table if exists LOCAL_LOADED_TABLE modify COLUMN NAME unset masking policy ;--unsetiing masking policy
+
+drop masking policy condition_mask;--this should be performed after you unset the policy on the specified column by alter command.
+
+--ROW BASED ACCESS
+
+create or replace table sample_row_based_access(employee_id number,
+first_name varchar(50),
+last_name varchar(50),
+email varchar(50),
+hire_date date,
+country varchar(50));
+INSERT INTO sample_row_based_access(employee_id,first_name,last_name,email,hire_date,country) VALUES
+(100,'Steven','King','SKING@outlook.com','2013-06-17','US'),
+(101,'Neena','Kochhar','NKOCHHAR@outlook.com','2015-09-21','US'),
+(102,'Lex','De Haan','LDEHAAN@outlook.com','2011-01-13','US'),
+(103,'Alexander','Hunold','AHUNOLD@outlook.com','2016-01-03','UK'),
+(104,'Bruce','Ernst','BERNST@outlook.com','2017-05-21','UK'),
+(105,'David','Austin','DAUSTIN@outlook.com','2015-06-25','UK'),
+(106,'Valli','Pataballa','VPATABAL@outlook.com','2016-02-05','CA'),
+(107,'Diana','Lorentz','DLORENTZ@outlook.com','2017-02-07','CA'),
+(108,'Nancy','Greenberg','NGREENBE@outlook.com','2012-08-17','CA')
+;
+
+select * from sample_row_based_access;
+create or replace table row_based_access_mapping(
+    country varchar(50),
+    role_name varchar(50)
+);
+
+select * from row_based_access_mapping;
+INSERT INTO row_based_access_mapping(country, role_name) VALUES
+('US','DATA_ANALYST_ROLE_US'),
+('UK','DATA_ANALYST_ROLE_UK'),
+('CA','DATA_ANALYST_ROLE_CA')
+;
+
+create or replace row access policy role_policy as (country_name varchar) returns boolean ->
+    exists (
+            select 1 from row_based_access_mapping
+              where role_name = current_role()
+                and country = country_name
+          );--defining policy
+
+alter table sample_row_based_access add row access policy role_policy on (country);--adding row based access to table
+
+create or replace role DATA_ANALYST_ROLE_US;
+create or replace role DATA_ANALYST_ROLE_UK;
+create or replace role DATA_ANALYST_ROLE_CA;
+
+grant role DATA_ANALYST_ROLE_US to role ACCOUNTADMIN;
+grant role DATA_ANALYST_ROLE_UK to role ACCOUNTADMIN;
+grant role DATA_ANALYST_ROLE_CA to role ACCOUNTADMIN;
+
+USE ROLe DATA_ANALYST_ROLE_US;
+
+--granting appropriate permission in order to able to access table created in a schema under database
+grant usage on database test_db to role DATA_ANALYST_ROLE_US;
+grant usage on schema test_schema to role DATA_ANALYST_ROLE_US;
+grant select on sample_row_based_access to role DATA_ANALYST_ROLE_US;
+
+grant usage on database test_db to role DATA_ANALYST_ROLE_UK;
+grant usage on schema test_schema to role DATA_ANALYST_ROLE_UK;
+grant select on sample_row_based_access to role DATA_ANALYST_ROLE_UK;
+
+grant usage on database test_db to role DATA_ANALYST_ROLE_CA;
+grant usage on schema test_schema to role DATA_ANALYST_ROLE_CA;
+grant select on sample_row_based_access to role DATA_ANALYST_ROLE_CA;
+
+--granting permission to use warehouse
+grant usage on warehouse compute_wh to role DATA_ANALYST_ROLE_US;
+grant usage on warehouse compute_wh to role DATA_ANALYST_ROLE_UK;
+grant usage on warehouse compute_wh to role DATA_ANALYST_ROLE_CA;
+
+select * from sample_row_based_access;--verifying
+
+revoke all privileges on table sample_row_based_access from role DATA_ANALYST_ROLE_US;
+revoke all privileges on table sample_row_based_access from role DATA_ANALYST_ROLE_UK;
+revoke all privileges on table sample_row_based_access from role DATA_ANALYST_ROLE_CA;
+
+alter table sample_row_based_access drop row access policy role_policy;--unset row based access to table. the policy should not be attached to any table before dropping.
+revoke usage ON database test_db from ROLE junior_dba;
+revoke usage ON SCHEMA test_schema from ROLE junior_dba;
+revoke select on table LOCAL_LOADED_TABLE from ROLE junior_dba;
+show row access policies;
+
+describe row access policy role_policy;--definition of row based access

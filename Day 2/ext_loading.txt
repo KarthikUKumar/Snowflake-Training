@@ -1,0 +1,129 @@
+--External Stage--
+CREATE or replace STAGE my_azure_stage_SAS 
+URL = 'azure://chinmaydatabricks.blob.core.windows.net/database/training_file/'
+CREDENTIALS = (AZURE_SAS_TOKEN = 'sp=racwlme&st=2023-07-04T08:42:51Z&se=2023-07-08T16:42:51Z&spr=https&sv=2022-11-02&sr=c&sig=4WBieMjnMY0rJIxIYcgbYOrtkF2uSE4pIk8daG7kogc%3D');
+
+
+list @my_azure_stage_SAS/;
+
+  
+--BULK COPY--
+CREATE OR REPLACE TABLE PIM_TAXONOMY
+(
+pim_item_surrogate_key INT,
+itid STRING,
+hsi_item_number STRING,
+country_code STRING,
+erp_code STRING,
+primary_taxonomy_description STRING,
+primary_taxonomy_structure STRING,
+primary_taxonomy_level_01_code STRING,
+primary_taxonomy_level_01_description STRING,
+primary_taxonomy_level_02_code STRING,
+primary_taxonomy_level_02_description STRING,
+primary_taxonomy_level_03_code STRING,
+primary_taxonomy_level_03_description STRING,
+primary_taxonomy_level_04_code STRING,
+primary_taxonomy_level_04_description STRING,
+primary_taxonomy_level_05_code STRING,
+primary_taxonomy_level_05_description STRING,
+primary_taxonomy_level_06_code STRING,
+primary_taxonomy_level_06_description STRING,
+unspc_taxonomy_description STRING,
+unspc_taxonomy_structure STRING,
+unspc_taxonomy_level_01_code STRING,
+unspc_taxonomy_level_01_description STRING,
+unspc_taxonomy_level_02_code STRING,
+unspc_taxonomy_level_02_description STRING,
+unspc_taxonomy_level_03_code STRING,
+unspc_taxonomy_level_03_description STRING,
+unspc_taxonomy_level_04_code STRING,
+unspc_taxonomy_level_04_description STRING,
+unspc_taxonomy_level_05_code STRING,
+unspc_taxonomy_level_05_description STRING,
+unspc_taxonomy_level_06_code STRING,
+unspc_taxonomy_level_06_description STRING,
+medical_taxonomy_description STRING,
+medical_taxonomy_structure STRING,
+medical_taxonomy_level_01_code STRING,
+medical_taxonomy_level_01_description STRING,
+medical_taxonomy_level_02_code STRING,
+medical_taxonomy_level_02_description STRING,
+medical_taxonomy_level_03_code STRING,
+medical_taxonomy_level_03_description STRING,
+medical_taxonomy_level_04_code STRING,
+medical_taxonomy_level_04_description STRING,
+medical_taxonomy_level_05_code STRING,
+medical_taxonomy_level_05_description STRING,
+medical_taxonomy_level_06_code STRING,
+medical_taxonomy_level_06_description STRING,
+dental_taxonomy_description STRING,
+dental_taxonomy_structure STRING,
+dental_taxonomy_level_01_code STRING,
+dental_taxonomy_level_01_description STRING,
+dental_taxonomy_level_02_code STRING,
+dental_taxonomy_level_02_description STRING,
+dental_taxonomy_level_03_code STRING,
+dental_taxonomy_level_03_description STRING,
+dental_taxonomy_level_04_code STRING,
+dental_taxonomy_level_04_description STRING,
+dental_taxonomy_level_05_code STRING,
+dental_taxonomy_level_05_description STRING,
+dental_taxonomy_level_06_code STRING,
+dental_taxonomy_level_06_description STRING,
+special_market_taxonomy_description STRING,
+special_market_taxonomy_structure STRING,
+special_market_taxonomy_level_01_code STRING,
+special_market_taxonomy_level_01_description STRING,
+special_market_taxonomy_level_02_code STRING,
+special_market_taxonomy_level_02_description STRING,
+special_market_taxonomy_level_03_code STRING,
+special_market_taxonomy_level_03_description STRING,
+special_market_taxonomy_level_04_code STRING,
+special_market_taxonomy_level_04_description STRING,
+special_market_taxonomy_level_05_code STRING,
+special_market_taxonomy_level_05_description STRING,
+special_market_taxonomy_level_06_code STRING,
+special_market_taxonomy_level_06_description STRING,
+lab_taxonomy_description STRING,
+lab_taxonomy_structure STRING,
+lab_taxonomy_level_01_code STRING,
+lab_taxonomy_level_01_description STRING,
+lab_taxonomy_level_02_code STRING,
+lab_taxonomy_level_02_description STRING,
+lab_taxonomy_level_03_code STRING,
+lab_taxonomy_level_03_description STRING,
+lab_taxonomy_level_04_code STRING,
+lab_taxonomy_level_04_description STRING,
+lab_taxonomy_level_05_code STRING,
+lab_taxonomy_level_05_description STRING,
+lab_taxonomy_level_06_code STRING,
+lab_taxonomy_level_06_description STRING,
+reporting_flag STRING,
+insert_date STRING,
+update_date STRING,
+load_id INT
+);
+
+list @my_azure_stage_SAS/training_files/CSV_extra/;
+
+--querying staged table--
+select $1,$2,$3 from @my_azure_stage_SAS/training_files/CSV_file limit 100;--querying csv file
+
+copy into PIM_TAXONOMY from @my_azure_stage_SAS/training_files/CSV_extra/
+file_format=my_csv_format;
+
+select * from PIM_TAXONOMY limit 100;
+
+
+SELECT *
+FROM information_schema.load_history
+WHERE schema_name=current_schema()
+and last_load_time>'2023-07-04 01:12:00 -0530';
+
+list @my_azure_stage_SAS/training_files/deleted_files/;
+remove @my_azure_stage_SAS/training_files/deleted_files/Local_Loaded_File.csv;
+remove @%table_staged pattern='.*jun.*';
+
+
+

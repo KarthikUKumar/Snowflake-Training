@@ -1,0 +1,22 @@
+--Storage Integration
+CREATE or replace STORAGE INTEGRATION my_azure_stage_STORAGE_INT
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = 'AZURE'
+  ENABLED = TRUE
+  AZURE_TENANT_ID = '640f94f1-4514-4053-b838-f019a031e6d1'
+  STORAGE_ALLOWED_LOCATIONS = ('azure://chinmaydatabricks.blob.core.windows.net/database');
+
+  desc STORAGE INTEGRATION my_azure_stage_STORAGE_INT;
+
+GRANT usage ON database test_db TO ROLE public;
+GRANT usage ON SCHEMA test_schema TO ROLE public;
+GRANT USAGE ON INTEGRATION my_azure_stage_STORAGE_INT TO ROLE public;
+
+
+  create or replace stage test_db.public.my_azure_stage_STORAGE_INT
+  STORAGE_INTEGRATION = my_azure_stage_STORAGE_INT
+  URL = 'azure://chinmaydatabricks.blob.core.windows.net/database';
+
+  list @my_azure_stage_STORAGE_INT;
+
+  --END--
